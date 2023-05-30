@@ -7,17 +7,18 @@ from argparse import ArgumentParser
 from datetime import timedelta
 
 import torch
-import wandb
-from dataset import SceneTextDataset
-from custom_dataset import ValidDataset, collate_fn
-from detect import detect
-from deteval import calc_deteval_metrics
-from east_dataset import EASTDataset
-from model import EAST
 from torch import cuda
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+
+import wandb
+from custom_dataset import ValidDataset, collate_fn
+from dataset import SceneTextDataset
+from detect import detect
+from deteval import calc_deteval_metrics
+from east_dataset import EASTDataset
+from model import EAST
 
 warnings.filterwarnings(action="ignore")
 
@@ -77,7 +78,7 @@ def do_training(
     train_dataset = EASTDataset(train_dataset)
     num_batches = math.ceil(len(train_dataset) / batch_size)
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-    
+
     if validation:
         val_ratio = 2
         valid_dataset = ValidDataset(data_dir, split="valid", image_size=image_size, ignore_tags=ignore_tags)
@@ -100,7 +101,7 @@ def do_training(
     mean_times = {"train": timedelta(), "valid": timedelta()}
 
     for epoch in range(max_epoch):
-        epoch_loss, min_f1_score, train_start = 0, math.inf, time.time()
+        epoch_loss, max_f1_score, train_start = 0, 0, time.time()
 
         model.train()
         pbar = tqdm(train_loader, total=num_batches)
@@ -144,7 +145,7 @@ def do_training(
         transcriptions_dict = {}
         pred_dict = {}
         gt_dict = {}
-        f1_score = math.inf
+        f1_score = 0
 
         if epoch + 1 >= 10 and validation:
             valid_start = time.time()
@@ -186,12 +187,12 @@ def do_training(
             ckpt_fpath = osp.join(osp.join(model_dir, exp_name), f"{exp_name}_latest.pth")
             torch.save(model.state_dict(), ckpt_fpath)
 
-        if f1_score < min_f1_score:
+        if f1_score > max_f1_score:
             print("Best F1 Score Renewal!")
             print("Save Model Weights...")
             ckpt_fpath = osp.join(osp.join(model_dir, exp_name), f"{exp_name}_bset.pth")
             torch.save(model.state_dict(), ckpt_fpath)
-            min_f1_score = f1_score
+            max_f1_score = f1_score
 
     print("-" * 10)
     print(f"train mean time: {mean_times['train'] / max_epoch}")
