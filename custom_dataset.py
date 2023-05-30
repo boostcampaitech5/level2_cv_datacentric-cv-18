@@ -9,6 +9,22 @@ from torch.utils.data import Dataset
 from dataset import *
 
 
+def valid_resize_img(img, vertices, size):
+    h, w = img.height, img.width
+    ratio = size / max(h, w)
+    if w > h:
+        shape = (size, int(h * ratio))
+        img = img.resize(shape, Image.BILINEAR)
+    else:
+        shape = (int(w * ratio), size)
+        img = img.resize(shape, Image.BILINEAR)
+    new_vertices = vertices * ratio
+    pad_img = Image.new(img.mode, (size, size), color=(0, 0, 0))
+    pad_img.paste(img)
+    del img
+    return pad_img, new_vertices
+
+
 class ValidDataset(Dataset):
     def __init__(
         self,
