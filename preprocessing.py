@@ -27,6 +27,8 @@ def parse_args():
 
 
 def pickle_dataset(dataset, type="train"):
+    os.makedirs(f"/opt/ml/input/data/medical/img/{type}_pickled", exist_ok=True)
+
     for img_num, data in tqdm(enumerate(iter(dataset)), total=len(dataset)):
         with open(file=f"/opt/ml/input/data/medical/img/{type}_pickled/{img_num}.pkl", mode="wb") as f:
             pickle.dump(data, f)
