@@ -1,12 +1,37 @@
 import json
+import os
 import os.path as osp
+import pickle
 
 import numpy as np
 import torch
+from dataset import *
 from PIL import Image
 from torch.utils.data import Dataset
 
-from dataset import *
+
+class PickledDataset(Dataset):
+    def __init__(self, data_dir, to_tensor=True):
+        self.data_dir = data_dir
+        self.data = os.listdir(data_dir)
+        self.to_tensor = to_tensor
+
+        self.data.sort()
+
+    def __getitem__(self, idx):
+        with open(file=self.data_dir + f"/{self.data[idx]}", mode="rb") as f:
+            image, score_map, geo_map, roi_mask = pickle.load(f)
+
+        if self.to_tensor:
+            image = torch.Tensor(image)
+            score_map = torch.Tensor(score_map)
+            geo_map = torch.Tensor(geo_map)
+            roi_mask = torch.Tensor(roi_mask)
+
+        return image, score_map, geo_map, roi_mask
+
+    def __len__(self):
+        return len(self.data)
 
 
 def valid_resize_img(img, vertices, size):
